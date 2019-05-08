@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[112]:
+
+
+#kde and plotting from: https://python-graph-gallery.com/86-avoid-overlapping-in-scatterplot-with-2d-density/
+#density estimation from: https://stats.stackexchange.com/questions/70629/calculate-uncertainty-of-linear-regression-slope-based-on-data-uncertainty
+
+import random
+import numpy as np
+import pylab
+import statistics
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
+import copy
+from scipy.stats import linregress
+
+temp=[5.836143348,5.640639649,5.572879155,5.662031612,5.674397869,5.703852101,5.768804557,5.801252202,5.730068453]
+temp_unc = [0.001053012,0.000868675,0.000816461,0.000886558,0.000897163,0.000923187,0.000984322,0.001016768,0.000947266]
+
+power=[-2.639167991,-3.420530231,-3.738899018,-3.333045738,-3.282412107,-3.161797705,-2.904886133,-2.781798053,-3.060536127]
+power_unc=[0.030802656,0.030974188,0.031173442,0.030935583,0.03091658,0.030879441,0.03082819,0.030813615,0.030854845]
+
+
+temp_sorted = copy.deepcopy(temp)
+temp_sorted.sort()
+temp_unc_sorted=[x for _,x in sorted(zip(temp,temp_unc))]
+power_sorted=[x for _,x in sorted(zip(temp,power))]
+power_unc_sorted=[x for _,x in sorted(zip(temp,power_unc))]
+
+
+
+plt.plot(temp,power,linestyle='None',marker='+')
+plt.plot(temp_sorted[5:9],power_sorted[5:9],linestyle='None',marker='+')
+plt.show()
+#plt.plot(temp_sorted,temp_unc_sorted,linestyle='None',marker='+')
+#plt.show()
+#plt.plot(temp,power_unc,linestyle='None',marker='+')
+#plt.plot(temp_sorted,power_unc_sorted,linestyle='None',marker='+')
+#plt.show()
+
+
+print("###LINEAR REGRESSION FULL")
+print(linregress(temp,power))
+print("###LINEAR REGRESSION FIRST")
+print(linregress(temp[0:4],power[0:4]))
+print("###LINEAR REGRESSION LAST")
+print(linregress(temp[5:9],power[5:9]))
+
+
+# In[115]:
+
+
+plt.figure(figsize=(7,7))
+
+
+def uncreg(x, y, xu, yu, N=100):
+    out = np.zeros((N, 2))
+    for n in range(N):
+        tx = [s+random.uniform(-xu, xu) for s in x]
+        ty = [s+random.uniform(-yu, yu) for s in y]
+        a, b = np.linalg.lstsq(np.vstack([tx, np.ones(len(x))]).T, ty)[0]
+        out[n, 0:2] = [a, b]
+    return out
+if __name__ == "__main__":
+    #P = uncreg(np.arange(0, 8.01), np.arange(0, 16.01, 2), 0.1, 6.)
+    P = uncreg(temp[0:4],power[0:4],statistics.mean(temp_unc),statistics.mean(power_unc))
+    H, xedges, yedges = np.histogram2d(P[:, 0], P[:, 1], bins=(50, 50))
+    #plt.contour(xedges,yedges,H)
+    x = P[:, 0]
+    y = P[:, 1]
+    nbins = 20
+    k = gaussian_kde([x,y])
+    xi, yi = np.mgrid[x.min():x.max():nbins*1j, y.min():y.max():nbins*1j]
+    zi = k(np.vstack([xi.flatten(), yi.flatten()]))
+    plt.pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.get_cmap('Blues'))
+    plt.contour(xi, yi, zi.reshape(xi.shape), [50])
+    plt.plot([4,4],[-26.25,-25.75],marker='None',color='black', linestyle='--')
+    plt.xlabel("Allowable Slopes")
+    plt.ylabel("Allowable Intercepts")
+    plt.title("95% Interval for Paired Slope and Intercept in ln(P) vs ln(T)")
+    plt.show()
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
